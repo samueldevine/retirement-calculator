@@ -1,14 +1,6 @@
-import requests
 from babel.numbers import format_currency
 
 from user import User
-
-
-def get_user_data(user_id):
-    url = "https://pgf7hywzb5.execute-api.us-east-1.amazonaws.com/users"
-    resp = requests.get(f"{url}/{user_id}")
-
-    return resp.json()
 
 
 class RetirementCalculator:
@@ -38,9 +30,8 @@ class RetirementCalculator:
         if retirement_goal < retirement_savings:
             print("You're on track, nice job!\n")
             return True
-        else:
-            print("Increase your savings rate to meet your goal!\n")
-            return False
+        print("Increase your savings rate to meet your goal!\n")
+        return False
 
     def _amount_needed_at_retirement(self, pre_retirement_income) -> int:
         """Returns an integer representing the savings balance needed at the
@@ -97,24 +88,3 @@ class RetirementCalculator:
             "balance": int(savings_balance),
             "pre_retirement_income": int(prev_year_income),
         }
-
-
-user_9 = {
-    "user_info": {
-        "date_of_birth": "1975-09-02",
-        "household_income": 224726,
-        "current_savings_rate": 9,
-        "current_retirement_savings": 15518,
-        "full_name": "Danny Kane",
-        "address": "51495 Smith Crest\nNorth Samanthaview, AL 35953",
-    },
-    "assumptions": {
-        "pre_retirement_income_percent": 67,
-        "life_expectancy": 95,
-        "expected_rate_of_return": 10,
-        "retirement_age": 58,
-    },
-}
-
-calc = RetirementCalculator(user_9)
-print(calc.calculate())
