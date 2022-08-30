@@ -23,7 +23,7 @@ class User:
         retirement age, rounded down to the nearest whole number."""
 
         dob = datetime.strptime(self.date_of_birth, "%Y-%m-%d")
-        delta = (datetime.today() - dob).days
-        age = delta / 365.25
+        age_in_days = (datetime.today() - dob).days
+        age = int(age_in_days / 365.25)
 
-        return int(self.retirement_age - age)
+        return self.retirement_age - age
