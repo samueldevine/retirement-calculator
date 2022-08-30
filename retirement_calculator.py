@@ -3,9 +3,6 @@ from babel.numbers import format_currency
 
 from user import User
 
-ANNUAL_INFLATION_RATE = 0.03
-ANNUAL_SALARY_INCREASE = 0.02
-
 
 def get_user_data(user_id):
     url = "https://pgf7hywzb5.execute-api.us-east-1.amazonaws.com/users"
@@ -14,81 +11,92 @@ def get_user_data(user_id):
     return resp.json()
 
 
-def calculate(user_data):
-    user = User(user_data)
+class RetirementCalculator:
+    def __init__(self, user_data) -> None:
+        self.annual_inflation_rate = 0.03  # initialize inflation rate and salary increase as percentages to avoid division by 100 later
+        self.annual_salary_increase = 0.02  # initialize inflation rate and salary increase as percentages to avoid division by 100 later
 
-    savings_data = expected_savings_at_retirement(user)
-    retirement_savings = savings_data["balance"]
-    pre_retirement_income = savings_data["pre_retirement_income"]
-    retirement_goal = amount_needed_at_retirement(user, pre_retirement_income)
+        self.user = User(user_data)
 
-    print(f"\nTo retire at age {user.retirement_age}:\n")
-    print(
-        f"You will need {format_currency(retirement_goal, 'USD', locale='en_US', currency_digits=False)}"
-    )
-    print(
-        f"You will have saved {format_currency(retirement_savings, 'USD', locale='en_US', currency_digits=False)}"
-    )
+    def calculate(self) -> bool:
+        """Returns a boolean value set to True if the user is on track to meet
+        their retirement goal, or False if they are not."""
 
-    if retirement_goal < retirement_savings:
-        return "You're on track, nice job!\n"
-    else:
-        return "Increase your savings rate to meet your goal!\n"
+        savings_data = self._expected_savings_at_retirement()
+        retirement_savings = savings_data["balance"]
+        pre_retirement_income = savings_data["pre_retirement_income"]
+        retirement_goal = self._amount_needed_at_retirement(pre_retirement_income)
 
-
-def amount_needed_at_retirement(user, pre_retirement_income):
-    years_in_retirement = user.life_expectancy - user.retirement_age
-    annual_withdrawal = pre_retirement_income * user.pre_retirement_income_percent / 100
-    print(f"years in retirement: {years_in_retirement}")
-
-    # determine what final withdrawal will be (during last year of life expectancy)
-    withdrawal_at_year_37 = annual_withdrawal_after_x_years(
-        annual_withdrawal, years_in_retirement - 1
-    )
-    print(f"withdrawal_at_year_37: {withdrawal_at_year_37}")
-
-    # determine how much you needed in your acc before this year
-    bal_needed = withdrawal_at_year_37 / (1 + user.expected_rate_of_return / 100)
-    print(f"bal_needed: {bal_needed}")
-
-    # loop it
-    total_bal_needed = 0
-    for year in reversed(range(years_in_retirement)):
-        """looping backwards over range"""
-        withdrawal_needed = annual_withdrawal_after_x_years(annual_withdrawal, year)
-        total_bal_needed += withdrawal_needed
-        roi = total_bal_needed / (1 + user.expected_rate_of_return)
-        total_bal_needed -= roi
+        print(f"\nTo retire at age {self.user.retirement_age}:\n")
         print(
-            f"year {year}: withdrawal_needed is {int(withdrawal_needed)}, roi is {int(roi)}, bal needed is {int(total_bal_needed)}"
+            f"You will need {format_currency(retirement_goal, 'USD', locale='en_US', currency_digits=False)}"
+        )
+        print(
+            f"You will have saved {format_currency(retirement_savings, 'USD', locale='en_US', currency_digits=False)}"
         )
 
-    # total_balance_needed = 0
-    # for year in range(0, years_in_retirement):
-    #     total_balance_needed += annual_withdrawal
-    #     annual_withdrawal *= 1 + ANNUAL_INFLATION_RATE / 100
+        if retirement_goal < retirement_savings:
+            print("You're on track, nice job!\n")
+            return True
+        else:
+            print("Increase your savings rate to meet your goal!\n")
+            return False
 
-    return int(total_bal_needed)
+    def _amount_needed_at_retirement(self, pre_retirement_income) -> int:
+        """Returns an integer representing the savings balance needed at the
+        user's desired retirement age.
 
+        Keyword args:
+        pre_retirement_income (int): the user's expected income during their
+            last year of employment"""
 
-def annual_withdrawal_after_x_years(withdrawal_at_year_0, year_of_retirement):
-    return withdrawal_at_year_0 * (1 + ANNUAL_INFLATION_RATE) ** year_of_retirement
+        years_in_retirement = self.user.life_expectancy - self.user.retirement_age
+        annual_withdrawal = (
+            pre_retirement_income * self.user.pre_retirement_income_percent / 100
+        )
 
+        total_bal_needed = 0
+        for year in reversed(range(years_in_retirement)):
+            withdrawal_needed = self._future_withdrawal(annual_withdrawal, year)
+            total_bal_needed += withdrawal_needed
+            roi = total_bal_needed / (1 + self.user.expected_rate_of_return)
+            total_bal_needed -= roi
 
-def expected_savings_at_retirement(user) -> dict:
-    savings_balance = user.current_retirement_savings
-    income = user.household_income
-    for year in range(0, user.years_until_retirement()):
-        prev_year_income = round(income, 2)
-        roi = savings_balance * (user.expected_rate_of_return) / 100
-        savings_balance += income * user.current_savings_rate / 100
-        savings_balance += roi
-        income *= 1 + ANNUAL_SALARY_INCREASE
+        return int(total_bal_needed)
 
-    return {
-        "balance": int(savings_balance),
-        "pre_retirement_income": int(prev_year_income),
-    }
+    def _future_withdrawal(self, init_withdrawal, year_of_retirement) -> int:
+        """Returns an integer representing the withdrawal amount needed in a
+        given year of retirement. Accounts for inflation to allow the retiree
+        to maintain a similar quality of life.
+
+        Keyword args:
+        init_withdrawal (float): total withdrawals in the first year of
+            retirement, calculated from pre-retirement income and
+            pre-retirement income percentage
+        year_of_retirement (int): how many years the user has been retired"""
+
+        return int(
+            init_withdrawal * (1 + self.annual_inflation_rate) ** year_of_retirement
+        )
+
+    def _expected_savings_at_retirement(self) -> dict:
+        """Returns a dictionary with two integer values representing the user's
+        total expected savings balance at retirement, and the user's final
+        pre-retirement-income after annual salary increases."""
+
+        savings_balance = self.user.current_retirement_savings
+        income = self.user.household_income
+        for year in range(0, self.user.years_until_retirement()):
+            prev_year_income = income
+            roi = savings_balance * self.user.expected_rate_of_return / 100
+            savings_balance += (income * self.user.current_savings_rate / 100) + roi
+
+            income *= 1 + self.annual_salary_increase
+
+        return {
+            "balance": int(savings_balance),
+            "pre_retirement_income": int(prev_year_income),
+        }
 
 
 user_9 = {
@@ -108,4 +116,5 @@ user_9 = {
     },
 }
 
-print(calculate(user_9))
+calc = RetirementCalculator(user_9)
+print(calc.calculate())
