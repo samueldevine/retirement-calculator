@@ -60,6 +60,8 @@ detected.
 
 This was a fun project to work on, and I'm excited for a chance to discuss it further! I was surprised by the complexity of the calculations required to work backwards from a $0 balance like this, which led to some funky workarounds (like calculating an annual return from investments before the user withdraws money, thereby overestimating ROI in the `_amount_needed_at_retirement` method).
 
+I also noticed that my estimates for how much a given user needs to retire are _way_ smaller than the provided examples, so I'm really curious to see how that one works as well!
+
 Feel free to reach out with questions or comments, I'm definitely open to feedback.
 
 Thank you!
