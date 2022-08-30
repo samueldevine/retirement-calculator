@@ -1,5 +1,5 @@
 from datetime import datetime
-from user import User
+from services.user import User
 
 
 user = User(

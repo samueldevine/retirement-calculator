@@ -1,6 +1,6 @@
 from babel.numbers import format_currency
 
-from user import User
+from services.user import User
 
 
 class RetirementCalculator:

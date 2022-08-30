@@ -1,5 +1,5 @@
-from user import User
-from retirement_calculator import RetirementCalculator
+from services.user import User
+from services.retirement_calculator import RetirementCalculator
 
 
 calc = RetirementCalculator(
