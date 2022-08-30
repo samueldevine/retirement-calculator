@@ -1,6 +1,6 @@
 # Retirement Calculator
 
-NOTE: This is a coding exercise for an interview, not real financial advice!
+_This is a coding exercise for an interview, not real financial advice!_
 
 Retirement Calculator is a small python script that calls an API endpoint to generate some random user data, and then calculates how much money that user will have saved by the time they retire, and how much they'll actually need in their account to maintain their current standard of living until the end of their life expectancy.
 
